@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinguaLoop - Language Translator</title>
+<style>
+* { box-sizing: border-box; font-family: Arial, sans-serif; }
+body { margin: 0; padding: 30px 15px; background: #f1f5f2; color: #26352c; }
+.container { max-width: 850px; margin: auto; background: white; padding: 30px; border-radius: 14px; box-shadow: 0 4px 18px #00000012; }
+h1, .subtitle { text-align: center; }
+.subtitle { color: #68756c; margin-bottom: 28px; }
+.languages, .actions { display: flex; gap: 12px; align-items: center; margin-bottom: 15px; }
+select { flex: 1; padding: 12px; border: 1px solid #ccd7ce; border-radius: 7px; background: white; }
+button { border: none; border-radius: 7px; padding: 11px 16px; cursor: pointer; background: #dce9df; color: #26352c; }
+button:hover { opacity: .85; }
+textarea { width: 100%; min-height: 140px; padding: 15px; border: 1px solid #ccd7ce; border-radius: 8px; resize: vertical; font-size: 15px; }
+.count { text-align: right; color: #758078; font-size: 12px; margin: 6px 0 15px; }
+.translate-btn { width: 100%; background: #477b59; color: white; font-size: 16px; margin: 15px 0; }
+#message { color: #b33b3b; text-align: center; min-height: 20px; }
+h3 { margin-top: 25px; }
+#history { padding-left: 20px; color: #526157; }
+@media(max-width:600px) { .container { padding: 20px; } .languages { flex-wrap: wrap; } }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>LinguaLoop</h1>
+    <p class="subtitle">A simple language translator</p>
+
+    <div class="languages">
+        <select id="source"></select>
+        <button onclick="swapLanguages()">Swap</button>
+        <select id="target"></select>
+    </div>
+
+    <textarea id="inputText" maxlength="500" placeholder="Enter text to translate..."></textarea>
+    <div class="count" id="count">0 / 5000</div>
+    <button class="translate-btn" onclick="translateText()">Translate</button>
+    <p id="message"></p>
+    <textarea id="outputText" placeholder="Translation will appear here..." readonly></textarea>
+
+    <div class="actions">
+        <button onclick="copyTranslation()">Copy</button>
+        <button onclick="clearText()">Clear</button>
+    </div>
+
+    <h3>Recent Translations</h3>
+    <ul id="history"></ul>
+</div>
+
+<script>
+const API = "http://localhost:5000";
+const sourceSelect = document.getElementById("source");
+const targetSelect = document.getElementById("target");
+const inputText = document.getElementById("inputText");
+const outputText = document.getElementById("outputText");
+const message = document.getElementById("message");
+
+async function loadLanguages() {
+    try {
+        const response = await fetch(API + "/languages");
+        const languages = await response.json();
+        for (const [code, name] of Object.entries(languages)) {
+            sourceSelect.add(new Option(name, code));
+            targetSelect.add(new Option(name, code));
+        }
+        sourceSelect.value = "auto";
+        targetSelect.value = "en";
+    } catch (error) {
+        message.textContent = "Could not connect to the server.";
+    }
+}
+
+async function translateText() {
+    const text = inputText.value.trim();
+    message.textContent = "";
+    outputText.value = "";
+    if (!text) {
+        message.textContent = "Please enter some text.";
+        return;
+    }
+
+    try {
+        const response = await fetch(API + "/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                text: text,
+                source: sourceSelect.value,
+                target: targetSelect.value
+            })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            message.textContent = data.error || "Translation failed.";
+            return;
+        }
+        outputText.value = data.translation;
+        saveHistory(text, data.translation);
+    } catch (error) {
+        message.textContent = "Could not connect to the server.";
+    }
+}
+
+function swapLanguages() {
+    if (sourceSelect.value === "auto") {
+        message.textContent = "Choose a source language before swapping.";
+        return;
+    }
+    const oldSource = sourceSelect.value;
+    sourceSelect.value = targetSelect.value;
+    targetSelect.value = oldSource;
+    const oldText = inputText.value;
+    inputText.value = outputText.value;
+    outputText.value = oldText;
+    message.textContent = "";
+    updateCount();
+}
+
+function copyTranslation() {
+    if (!outputText.value) {
+        message.textContent = "Nothing to copy.";
+        return;
+    }
+    navigator.clipboard.writeText(outputText.value);
+    message.textContent = "Translation copied!";
+}
+
+function clearText() {
+    inputText.value = "";
+    outputText.value = "";
+    message.textContent = "";
+    updateCount();
+}
+
+function updateCount() {
+    document.getElementById("count").textContent = inputText.value.length + " / 5000";
+}
+
+function saveHistory(original, translated) {
+    let history = JSON.parse(localStorage.getItem("translationHistory") || "[]");
+    history.unshift({ original: original, translated: translated });
+    history = history.slice(0, 5);
+    localStorage.setItem("translationHistory", JSON.stringify(history));
+    showHistory();
+}
+
+function showHistory() {
+    const history = JSON.parse(localStorage.getItem("translationHistory") || "[]");
+    const list = document.getElementById("history");
+    list.innerHTML = "";
+    history.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.original + " → " + item.translated;
+        list.appendChild(li);
+    });
+}
+
+inputText.addEventListener("input", updateCount);
+loadLanguages();
+showHistory();
+</script>
+</body>
+</html>
