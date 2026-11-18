@@ -1,48 +1,4 @@
-# from flask import Flask, request, jsonify, send_from_directory
-# from flask_cors import CORS
-# from deep_translator import GoogleTranslator
 
-# app = Flask(__name__)
-# CORS(app)
-
-# LANGUAGES = {
-#     "auto": "Auto Detect", "en": "English", "hi": "Hindi",
-#     "fr": "French", "de": "German", "es": "Spanish",
-#     "it": "Italian", "pt": "Portuguese", "ja": "Japanese",
-#     "ko": "Korean", "zh-CN": "Chinese (Simplified)",
-#     "ar": "Arabic", "ru": "Russian", "nl": "Dutch",
-#     "tr": "Turkish", "pl": "Polish", "sv": "Swedish",
-#     "da": "Danish", "fi": "Finnish", "no": "Norwegian"
-# }
-
-# @app.route("/")
-# def home():
-#     return send_from_directory(".", "index.html")
-
-# @app.route("/languages")
-# def get_languages():
-#     return jsonify(LANGUAGES)
-
-# @app.route("/translate", methods=["POST"])
-# def translate():
-#     data = request.get_json()
-#     text = data.get("text", "").strip()
-#     source = data.get("source", "auto")
-#     target = data.get("target", "en")
-
-#     if not text:
-#         return jsonify({"error": "Please enter some text."}), 400
-#     if source == target:
-#         return jsonify({"error": "Please select two different languages."}), 400
-
-#     try:
-#         result = GoogleTranslator(source=source, target=target).translate(text)
-#         return jsonify({"translation": result})
-#     except Exception as error:
-#         return jsonify({"error": str(error)}), 500
-
-# if __name__ == "__main__":
-#     app.run(debug=True, port=5000)
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
